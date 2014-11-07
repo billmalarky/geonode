@@ -1,0 +1,4 @@
+/.vagrant
+/nbproject/
+/vendor
+/node/node_modules
