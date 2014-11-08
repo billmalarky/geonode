@@ -2,4 +2,14 @@ extends layout
 
 block content
   h1= title
-  p Welcome to #{title}
+  p 
+    | GeoNode is a basic Node.js Express API wrapper around the 
+    a(href='http://www.geonames.org/') Geonames
+    |  locations database. It uses MySql and Sequelize.js instead of MongoDB since it was built to benchmark against Slim and Phalcon PHP frameworks. For better API performance, use MongoDB. 
+  p 
+    a(href='/api/primary/4526992') Primary lookup request
+  p 
+    a(href='/api/geoname/US/OH/upper%20arlington') Search request
+  p
+    | For benchmarking information visit 
+    a(href="http://reidmayo.com/2014/10/25/benchmarking-phalcon-php-vs-slim-framework-with-opcache-vs-node-js/") Reidmayo.com

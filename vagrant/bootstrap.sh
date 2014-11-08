@@ -35,6 +35,9 @@ npm install -g express express-generator
 cd /vagrant/node
 npm install
 
+# run this to build the seqeulize structure if not yet built (models/config/migrations)
+# node_modules/.bin/sequelize init
+
 # Uncomment the following lines if starting a new project. 
 # New skeleton express app will be created in /node/geonode to be copied to the /vagrant/node dir.
 # Make sure to comment the lines above.
@@ -44,6 +47,10 @@ npm install
 #cd /node/geonode
 #npm install
 
+# Forward port 80 requests to Node's default port 3000
+#iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 3000
+iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3000
+#iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 3000
 
 # MySql / MariaDB
 yum install -y mysql mysql-server
