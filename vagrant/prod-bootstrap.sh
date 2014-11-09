@@ -1,23 +1,47 @@
 #!/bin/sh
 
-#Before running this create a dir "/var/repositories/geoname" to hold the repository files
-
-
 SITE_DIR="/var/www/html" # The path to the web application on the server (default: /var/www/html)
-REPO_DIR="/var/repositories/geoname" # The path to the repository on the server
+SITE_PUB_DIR="/var/www/html/geonode.local/public" # The path to the application public web folder.
+VAGRANT_DATA_DIR="/vagrant/vagrant"
+DB_NAME="geoname" #name of mysql DB.
 
 # Install Applications
-#yum install -y git #git should already be installed to pull down repo on prod server.
+yum install -y git
 yum install -y vim
 yum install -y unzip.x86_64
+yum install -y screen
+yum -y groupinstall "Development Tools"
+yum install -y gcc gcc-c++ autoconf automake make
 
 
-# Install LAMP stack
+# Install node
+cd /usr/src
+wget http://nodejs.org/dist/v0.10.33/node-v0.10.33.tar.gz
+tar zxf node-v0.10.33.tar.gz
+cd node-v0.10.33
+./configure
+make
+make install
+export PATH=$PATH:/usr/local/bin
+npm install -g express express-generator
 
-# Apache
-yum install -y httpd
-service httpd start
-chkconfig httpd on
+
+# Comment these lines if starting a new project.
+cd /vagrant/node
+npm install
+
+# run this to build the seqeulize structure if not yet built (models/config/migrations)
+# node_modules/.bin/sequelize init
+
+# Uncomment the following lines if starting a new project. 
+# New skeleton express app will be created in /node/geonode to be copied to the /vagrant/node dir.
+# Make sure to comment the lines above.
+#mkdir -p /node
+#cd /node
+#express geonode
+#cd /node/geonode
+#npm install
+
 
 # MySql / MariaDB
 yum install -y mysql mysql-server
@@ -25,59 +49,27 @@ service mysqld start
 chkconfig mysqld on
 mysqladmin -u root password root # set mysql root password to root
 
-# PHP
-yum install -y php php-mysql php-pdo
-
-# Create Geoname MySql user and database via install script
-php $REPO_DIR/vagrant/mysql/install.php
-
-
-# Setting up Xdebug
-yum install -y php-devel
-yum install -y php-pear
-yum install -y gcc gcc-c++ autoconf automake make
-pecl install Xdebug
-
-# Install xdebug.ini file.
-ln -s $REPO_DIR/vagrant/php/xdebug.ini /etc/php.d/xdebug.ini
-
-# Install configured php.ini
-cp /etc/php.ini /etc/php.ini.orig
-rm -f /etc/php.ini
-ln -s $REPO_DIR/vagrant/php/php.ini /etc/php.ini
-
-# Install Composer
-curl -sS https://getcomposer.org/installer | php
-mv composer.phar /usr/local/bin/composer
-
 #echo "Symlinking site ..."
-rm -rf $SITE_DIR #delete html folder so the symlink will recreate it correctly (folder recreated as link).
-ln -s $REPO_DIR $SITE_DIR
+#rm -rf /var/www/html #delete html folder so the symlink will recreate it correctly (folder recreated as link).
+#ln -s /vagrant $SITE_DIR
 
-
-# Install configured httpd.conf
-cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
-rm -f /etc/httpd/conf/httpd.conf
-ln -s $REPO_DIR/vagrant/apache/httpd.conf /etc/httpd/conf/httpd.conf
-ln -s $REPO_DIR/vagrant/apache/mod_rewrite_rules.conf /etc/httpd/conf.d/mod_rewrite_rules.conf
-
-# Install Phalcon
-mkdir -p $REPO_DIR/phalcon
-cd $REPO_DIR/phalcon
-git clone git://github.com/phalcon/cphalcon.git
-rm -rf $REPO_DIR/phalcon/cphalcon/.git
-cd $REPO_DIR/phalcon/cphalcon/build
-./install
-ln -s $REPO_DIR/vagrant/php/phalcon.ini /etc/php.d/phalcon.ini
 
 # Download geonames data and import into mysql
-cd $REPO_DIR/geoname-import/
-sh geonames_importer.sh -a download-data
+cd /vagrant/geoname-import/
+#sh geonames_importer.sh -a download-data
 sh geonames_importer.sh -a create-db -u root -p root
-sh geonames_importer.sh -a import-dumps -u root -p root
+#sh geonames_importer.sh -a import-dumps -u root -p root
+mysql -u root -proot --local-infile=1 geoname < geonames_import_example_data.sql
 
 # Restart services
-service httpd restart
 service mysqld restart
 
+# Disabling the development firewall
+systemctl stop firewalld.service
+
+# Forward port 80 requests to Node's default port 3000
+iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 3000
+iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3000
+
 echo "Server provisioning complete!"
+echo "Start node server by going to /vagrant/node and running 'npm start'"

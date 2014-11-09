@@ -47,10 +47,6 @@ npm install
 #cd /node/geonode
 #npm install
 
-# Forward port 80 requests to Node's default port 3000
-#iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 3000
-iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3000
-#iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 3000
 
 # MySql / MariaDB
 yum install -y mysql mysql-server
@@ -75,6 +71,10 @@ service mysqld restart
 
 # Disabling the development firewall
 systemctl stop firewalld.service
+
+# Forward port 80 requests to Node's default port 3000
+iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 3000
+iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3000
 
 echo "Server provisioning complete!"
 echo "Start node server by going to /vagrant/node and running 'npm start'"
